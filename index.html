@@ -332,11 +332,11 @@ function renderAp(){
   $('#lista').innerHTML=!D?'<div class="empty">Baixando a lista de pessoas… Precisa de sinal na primeira vez.</div>':F.length?F.slice(0,300).map(p=>{const s=statusDe(d,st.ref,p.id);
     const cgT=s?.obra?`<span class="cg">CG ${esc(s.obra)}</span>`:'';
     const por=s&&s.ap!==auth.ap?`<small class="por">por ${esc(s.ap)}</small>`:'';
-    const nv=s?.local&&!s.sent?'<small class="por q">aguardando envio</small>':'';
+    const nv=(s?.local&&!s.sent?'<small class="por q">aguardando envio</small>':'')+(s?.quando&&depois(d,s.quando)?`<small class="por q">colhida depois: ${esc(depois(d,s.quando))}</small>`:'');
     const dir=s?.ok?`<div class="sig">${s.img?`<img alt="" src="${s.img}">`:'<b class="ok">✓</b>'}<span>${esc(s.h||'')} ${cgT}${por}${nv}</span></div>`:s?`<div class="nao">Sem assinatura${s.motivo?': '+esc(s.motivo):''}${por}${nv}</div>`:`<button class="btn" data-n="${esc(p.id)}">Assinar</button>`;
     return `<div class="p"><div><b>${esc(p.nome)}${tag(p)}</b><span>${esc(p.fun||'—')} · ${esc(p.t==='T'?p.emp:p.eq||'')}</span></div>${dir}</div>`}).join(''):'<div class="empty">Ninguém encontrado. Confira o nome ou use “+ Terceiro / visitante”.</div>';
   const r=REF.find(x=>x.k===st.ref);const n=P.filter(p=>statusDe(d,st.ref,p.id)?.ok).length;
-  $('#contador').innerHTML=`<b>${n}</b> assinaram o ${r.n.toLowerCase()} · ${br(d)}`;
+  $('#contador').innerHTML=`<b>${n}</b> assinaram o ${r.n.toLowerCase()} · ${br(d)}`+(d<hojeL()?' <span class="q">· dia anterior: fica marcado como colhida depois</span>':'');
   pintaSync();
 }
 function pintaSync(){const on=navigator.onLine;
@@ -351,6 +351,8 @@ cv.addEventListener('pointerdown',e=>{drawing=true;cv.setPointerCapture(e.pointe
 cv.addEventListener('pointermove',e=>{if(!drawing)return;const[x,y]=pt(e);cx.lineTo(x,y);cx.stroke();tem=true});
 cv.addEventListener('pointerup',()=>drawing=false);cv.addEventListener('pointercancel',()=>drawing=false);
 const hora=()=>new Date().toTimeString().slice(0,5);
+const agoraIso=()=>hojeL()+' '+hora();
+const depois=(dRef,quando)=>quando&&quando.slice(0,10)!==dRef?br(quando.slice(0,10)).slice(0,5)+' '+quando.slice(11,16):'';
 function pintaCg(){$('#sigCg').innerHTML=['256','257'].map(c=>`<button type="button" data-c="${c}" aria-pressed="${c===cgSel}">Trabalhando no CG ${c}</button>`).join('');
   $('#sigCgNote').textContent=cgSel?'Sugestão: última obra registrada para esta pessoa. Troque se hoje for outra.':'Escolha em qual obra a pessoa está trabalhando hoje.'}
 $('#sigCg').onclick=e=>{const b=e.target.closest('button[data-c]');if(b){cgSel=b.dataset.c;pintaCg()}};
@@ -363,9 +365,9 @@ async function grava(ok,motivo){
   const k=key(st.data,st.ref,alvo.id);
   if(statusDe(st.data,st.ref,alvo.id)){$('#dSig').close();renderAp();return}
   const img=ok?imagemPequena():'';
-  const it={uid:k+'|'+Date.now(),tipo:'assin',data:st.data,ref:st.ref,pid:alvo.id,nome:alvo.nome,emp:alvo.emp,t:alvo.t,obra:cgSel,img,motivo:motivo||'',hora:hora(),gps};
+  const it={uid:k+'|'+Date.now(),tipo:'assin',data:st.data,ref:st.ref,pid:alvo.id,nome:alvo.nome,emp:alvo.emp,t:alvo.t,obra:cgSel,img,motivo:motivo||'',hora:hora(),gps,quando:agoraIso()};
   await fila.add(it);
-  LOC[k]={ok,obra:cgSel,h:it.hora,ap:auth.ap,img,motivo:motivo||'',sent:false,uid:it.uid,dt:st.data};
+  LOC[k]={ok,obra:cgSel,h:it.hora,ap:auth.ap,img,motivo:motivo||'',sent:false,uid:it.uid,dt:st.data,quando:it.quando};
   LS.set('local',LOC);$('#dSig').close();await contaFila();renderAp();sincronizar();
 }
 $('#okSig').onclick=()=>{if(!tem){$('#sigMeta').textContent='Falta a assinatura no quadro.';return}grava(true)};
@@ -448,7 +450,8 @@ function renderFe(){const[ini,fim]=periodo();const cg=$('#fCg').value;const dias
   const L=R.filter(x=>x[7]===cg),ok=L.filter(x=>x[8]);
   const te=ok.filter(x=>x[6]==='T'&&sitE(x[5])==='D'),tq=ok.filter(x=>x[6]==='T'&&sitE(x[5])==='?'),cp=ok.filter(x=>x[6]!=='T'||sitE(x[5])==='C');
   const val=a=>a.reduce((s,x)=>s+PRECO[x[2]],0);
-  $('#cards').innerHTML=[['Refeições assinadas',ok.length],['Valor estimado',brl(val(ok))],['Terceiros à descontar',brl(val(te))],['Sem assinatura',L.length-ok.length]].concat(tq.length?[['Empresa a definir',tq.length+' refeições']]:[]).map(([a,b])=>`<div class="card"><span>${a}</span><b>${esc(b)}</b></div>`).join('');
+  const tard=ok.filter(x=>depois(x[1],x[12]));
+  $('#cards').innerHTML=[['Refeições assinadas',ok.length],['Valor estimado',brl(val(ok))],['Terceiros à descontar',brl(val(te))],['Sem assinatura',L.length-ok.length]].concat(tq.length?[['Empresa a definir',tq.length+' refeições']]:[]).concat(tard.length?[['Colhidas em outro dia',tard.length+' ('+[...new Set(tard.map(x=>x[11]))].join(', ')+')']]:[]).map(([a,b])=>`<div class="card"><span>${a}</span><b>${esc(b)}</b></div>`).join('');
   const emps=Object.keys(D?.empresas||{}).sort((a,b)=>(sitE(a)==='?'?0:1)-(sitE(b)==='?'?0:1)||a.localeCompare(b));
   $('#emps').innerHTML=emps.map(m=>{const e=D.empresas[m];return `<div class="p"><div><b>${esc(m)}</b><span>${P.filter(p=>p.emp===m&&p.t==='T').length} pessoa(s)${e[0]==='?'?' · <span class="q">definir</span>':''}</span></div><div class="row" style="justify-content:end"><select data-e="${esc(m)}" aria-label="Situação">${Object.entries(SIT).map(([k,v])=>`<option value="${k}"${e[0]===k?' selected':''}>${v}</option>`).join('')}</select><select data-oe="${esc(m)}" aria-label="Obra principal"><option value="">Obra —</option>${['256','257'].map(c=>`<option value="${c}"${e[1]===c?' selected':''}>CG ${c}</option>`).join('')}</select></div></div>`}).join('');
   const hd=`<thead><tr><th>Refeição</th>${dias.map(d=>`<th>${d.slice(8)}</th>`).join('')}<th>Total</th><th>Valor</th></tr></thead>`;
@@ -461,7 +464,7 @@ function renderFe(){const[ini,fim]=periodo();const cg=$('#fCg').value;const dias
   renderCorr()}
 function renderCorr(){const q=$('#buscaC').value.trim().toUpperCase();if(q.length<3){$('#listaC').innerHTML='<div class="empty">Digite pelo menos 3 letras.</div>';return}
   const L=R.filter(x=>x[4].toUpperCase().includes(q)).sort((a,b)=>a[1].localeCompare(b[1]));
-  $('#listaC').innerHTML=L.length?L.slice(0,80).map(x=>`<div class="p"><div><b>${esc(x[4])}</b><span>${br(x[1])} · ${REF.find(r=>r.k===x[2]).n} · CG ${esc(x[7])} · ${x[8]?'assinado':'sem assinatura'} · ${esc(x[11])}</span></div><div class="row" style="justify-content:end"><button class="btn sec" data-mv="${esc(x[0])}" data-to="${x[7]==='256'?'257':'256'}">Mudar p/ CG ${x[7]==='256'?'257':'256'}</button><button class="btn sec" data-an="${esc(x[0])}">Anular</button></div></div>`).join(''):'<div class="empty">Nada nesta quinzena.</div>'}
+  $('#listaC').innerHTML=L.length?L.slice(0,80).map(x=>`<div class="p"><div><b>${esc(x[4])}</b><span>${br(x[1])} · ${REF.find(r=>r.k===x[2]).n} · CG ${esc(x[7])} · ${x[8]?'assinado':'sem assinatura'} · ${esc(x[11])}${depois(x[1],x[12])?' · <span class="q">colhida em '+esc(depois(x[1],x[12]))+'</span>':''}</span></div><div class="row" style="justify-content:end"><button class="btn sec" data-mv="${esc(x[0])}" data-to="${x[7]==='256'?'257':'256'}">Mudar p/ CG ${x[7]==='256'?'257':'256'}</button><button class="btn sec" data-an="${esc(x[0])}">Anular</button></div></div>`).join(''):'<div class="empty">Nada nesta quinzena.</div>'}
 $('#buscaC').oninput=renderCorr;
 $('#listaC').onclick=async e=>{const m=e.target.closest('button[data-mv]'),a=e.target.closest('button[data-an]');if(!m&&!a)return;
   if(a&&!confirmar('Anular esta refeição? Ela sai da medição.'))return;
