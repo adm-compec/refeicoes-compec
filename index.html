@@ -273,7 +273,15 @@ function pessoas(){
   const m=new Map();
   (D?.pessoas||[]).forEach(p=>m.set(p[0],{id:p[0],nome:p[1],emp:p[2],fun:p[3],t:p[4],eq:p[5],obra:p[6],desl:p[7]}));
   EXTRA.forEach(p=>{if(!m.has(p.id))m.set(p.id,{id:p.id,nome:p.nome,emp:p.emp,fun:p.fun,t:p.t,eq:p.t==='V'?'VISITANTES':'TERCEIROS',obra:p.obra,desl:''})});
-  return [...m.values()].sort((a,b)=>a.nome.localeCompare(b.nome))}
+  const L=[...m.values()];
+  /* junta equipes repetidas: mesmo nome com/sem acento, e apelidos da mesma equipe */
+  const semAc=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s*-\s*/g,' - ').replace(/\s+/g,' ').trim();
+  const APELIDO={'MARCOS - MASSA':'MASSA','MARCOS MASSA':'MASSA'};
+  const pref={};
+  L.forEach(p=>{const k=APELIDO[semAc(p.eq)]||semAc(p.eq);const n=String(p.eq||'').trim().toUpperCase();const ac=x=>(x.match(/[^\x00-\x7F]/g)||[]).length;
+    if(APELIDO[semAc(p.eq)])return;if(!pref[k]||ac(n)>ac(pref[k]))pref[k]=n});
+  L.forEach(p=>{const k=APELIDO[semAc(p.eq)]||semAc(p.eq);p.eq=pref[k]||k});
+  return L.sort((a,b)=>a.nome.localeCompare(b.nome))}
 let P=pessoas();
 const ativoEm=(p,d)=>!p.desl||p.desl>d;
 let LM=new Map();const indexa=()=>{LM=new Map((D?.lanc||[]).map(x=>[x[0],x]))};indexa();
