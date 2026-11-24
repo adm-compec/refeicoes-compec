@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#151311">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Refeições">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Refeições Compec</title>
+<style>
+/* VOICE: ferramenta de campo, direta, sem enfeite
+   IDEA: a folha de apropriação de refeição, virada ficha digital
+   PICTURE: a própria lista de assinaturas do dia
+   COLOUR and TYPE: pedra, preto, tijolo; Schibsted Grotesk
+   LAYOUT: uma coluna para celular; fechamento como tabela pautada */
+/* cg */
+:root{color-scheme:light dark;--bg:light-dark(#e7e4df,#171513);--panel:light-dark(#fff,#221f1c);--ink:light-dark(#151311,#ece8e2);--mut:light-dark(#6b655d,#a39c92);--line:light-dark(#d4cfc7,#38332e);--acc:#c8371e;--ok:light-dark(#1d6b3a,#5fc185);--warn:light-dark(#9a5b00,#f0b35a)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Schibsted Grotesk",system-ui,sans-serif;overflow-x:clip}
+header{background:var(--ink);color:var(--bg);padding:14px max(4vw,14px) 0}
+header h1{font-size:20px;margin:0;line-height:1.1}
+header p{margin:2px 0 10px;font-size:13px;opacity:.75}
+nav{display:flex;gap:4px}
+nav button{flex:1;background:none;border:0;color:inherit;font:inherit;font-weight:700;padding:12px 8px;border-bottom:3px solid transparent;opacity:.7;cursor:pointer}
+nav button[aria-selected=true]{border-color:var(--acc);opacity:1}
+main{max-width:1240px;margin:0 auto;padding:14px max(4vw,14px) 120px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
+label{font-size:13px;color:var(--mut);display:grid;gap:3px;flex:1 1 150px}
+select,input,textarea{font:inherit;font-size:16px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);min-height:44px;width:100%}
+.seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px;margin:12px 0}
+.seg button{flex:1;border:0;background:none;font:inherit;font-weight:700;padding:10px 4px;border-radius:8px;color:var(--ink);cursor:pointer;min-height:44px}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+.seg small{display:block;font-weight:400;font-size:12px;opacity:.75}
+.list{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.p{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:10px 12px;border-top:1px solid var(--line)}
+.p:first-child{border-top:0}
+.p b{display:block;font-size:15px;line-height:1.25}
+.p span{font-size:13px;color:var(--mut)}
+.tag{font-size:12px;font-weight:700;padding:1px 6px;border-radius:4px;background:var(--acc);color:#fff;margin-left:4px}
+.tag.v{background:var(--mut)}
+.p select{width:auto;min-width:150px;flex:1 1 150px}
+#emps .p{grid-template-columns:minmax(0,1fr)}
+.q{color:var(--warn);font-weight:700}
+.cgbox{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center;margin-top:12px}
+.cgbox span{font-size:13px;color:var(--mut)}.cgbox .seg{margin:0}
+.cg{font-size:12px;font-weight:700;padding:1px 6px;border-radius:4px;border:1px solid var(--ink);margin-left:4px;white-space:nowrap}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.sub{padding:8px 12px;font-size:13px;font-weight:700;color:var(--mut);background:var(--bg);border-top:1px solid var(--line)}
+.btn{font:inherit;font-weight:700;border:0;border-radius:8px;padding:10px 14px;min-height:44px;cursor:pointer;background:var(--acc);color:#fff}
+.btn.sec{background:none;border:1px solid var(--line);color:var(--ink)}
+.btn:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.sig{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ok);font-weight:700}
+.sig img{height:34px;width:80px;object-fit:contain;background:#fff;border-radius:4px;border:1px solid var(--line)}
+.nao{color:var(--warn);font-size:12px;font-weight:700;text-align:right;max-width:130px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);padding:10px max(4vw,14px);display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.bar .n{font-size:14px}.bar .n b{font-size:20px}
+.sync{font-size:13px;font-weight:700;color:var(--warn)}
+dialog{border:0;border-radius:14px;padding:0;width:min(560px,94vw);background:var(--panel);color:var(--ink)}
+dialog::backdrop{background:#0008}
+.dlg{padding:16px;display:grid;gap:12px}
+.dlg h2{font-size:18px;margin:0;line-height:1.2}
+canvas{width:100%;height:200px;background:#fff;border:2px dashed var(--line);border-radius:10px;touch-action:none}
+.meta{font-size:12px;color:var(--mut)}
+h2.s{font-size:22px;margin:18px 0 8px;line-height:1.1}
+.note{font-size:13px;color:var(--mut);margin:6px 0}
+.scroll{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:6px 7px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--panel)}
+thead th{font-size:12px;color:var(--mut)}
+tr.tot td{font-weight:700;border-top:2px solid var(--ink)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:10px 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.card span{font-size:12px;color:var(--mut);display:block}.card b{font-size:clamp(20px,5vw,26px)}
+.empty{padding:22px;text-align:center;color:var(--mut)}
+[hidden]{display:none!important}
+.chk{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink);flex:1 1 200px}
+.chk input{width:22px;height:22px;min-height:0}
+.sig span{display:grid;justify-items:start;gap:2px}
+.p .tag{color:#fff}
+.p .sig span{color:var(--ok)}
+.por{display:block;font-size:11px;color:var(--mut);font-weight:400}
+.nao .por{text-align:right}
+header .top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.btn.ghost{background:none;border:1px solid currentColor;color:inherit;padding:6px 12px;min-height:36px;font-size:14px}
+.aviso{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--ink);border-radius:10px;padding:10px 12px;margin:0 0 12px;font-size:14px;line-height:1.45}
+.aviso.erro{border-left-color:var(--acc)}.aviso.ok{border-left-color:var(--ok)}
+.aviso a{color:var(--acc);font-weight:700}
+button.sync{background:none;border:0;font:inherit;font-size:13px;font-weight:700;color:var(--ok);cursor:pointer;min-height:44px;padding:0 4px}
+button.sync.q{color:var(--warn)}
+.ok{color:var(--ok)}
+.sig b.ok{font-size:22px}
+</style>
+
+</head>
+<body>
+<header>
+  <div class="top">
+    <div><h1>Refeições · SP-123</h1><p id="quem">CG 256 e CG 257 · Sabor da Fazenda</p></div>
+    <button class="btn ghost" id="sair" hidden>Sair</button>
+  </div>
+  <nav role="tablist" id="nav" hidden>
+    <button id="t-ap" role="tab" aria-selected="true">Assinaturas</button>
+    <button id="t-pe" role="tab" aria-selected="false" hidden>Pessoas</button>
+    <button id="t-fe" role="tab" aria-selected="false" hidden>Fechamento</button>
+  </nav>
+</header>
+
+<main>
+<div class="aviso" id="instalar" hidden></div>
+<div class="aviso erro" id="dupAviso" hidden></div>
+
+<section id="v-login" hidden>
+  <h2 class="s">Entrar</h2>
+  <p class="note">Escolha seu nome e digite o PIN de 4 números que o administrativo te passou. Precisa de internet só nesta primeira vez.</p>
+  <form id="fLogin" class="dlg" style="padding:0">
+    <label>Quem é você<select id="lAp"></select></label>
+    <label>PIN<input id="lPin" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" required></label>
+    <button class="btn">Entrar</button>
+    <p class="note" id="lMsg"></p>
+  </form>
+</section>
+
+<section id="v-ap" hidden>
+  <div class="row">
+    <label>Data<input type="date" id="data"></label>
+    <label>Equipe<select id="fEqA"><option value="*">Todas</option></select></label>
+  </div>
+  <div class="seg" id="ref"></div>
+  <div class="row" style="margin-bottom:8px">
+    <label>Buscar nome<input id="busca" placeholder="Digite parte do nome" autocomplete="off"></label>
+  </div>
+  <div class="row" style="margin-bottom:10px;align-items:center">
+    <label class="chk"><input type="checkbox" id="pend"> Só quem falta assinar</label>
+    <button class="btn sec" id="addT" style="flex:0 0 auto">+ Terceiro / visitante</button>
+  </div>
+  <div class="list" id="lista"></div>
+</section>
+
+<section id="v-pe" hidden>
+  <h2 class="s">Pessoas</h2>
+  <p class="note">Efetivos entram e saem sozinhos todo dia às 5h, lidos das relações de funcionários CG 256 e CG 257. Aqui você desliga terceiros e visitantes e ajusta a obra principal, que é só a sugestão na hora de assinar.</p>
+  <div class="row" style="margin-bottom:10px">
+    <button class="btn sec" id="sinc">Ler as relações agora</button>
+    <span class="note" id="sincMsg"></span>
+  </div>
+  <div class="row" style="margin-bottom:10px">
+    <label>Buscar nome<input id="buscaP" placeholder="Digite parte do nome" autocomplete="off"></label>
+    <label>Mostrar<select id="fPes"><option value="A">Ativos</option><option value="D">Desligados</option><option value="?">Sem obra principal</option><option value="T">Terceiros</option><option value="V">Visitantes</option></select></label>
+  </div>
+  <div class="list" id="listaP"></div>
+</section>
+
+<section id="v-fe" hidden>
+  <div class="row">
+    <label>Obra<select id="fCg"><option value="256">CG 256 · Lote 1</option><option value="257">CG 257 · Lote 2</option></select></label>
+    <label>Quinzena<select id="quinz"></select></label>
+    <button class="btn" id="carregar" style="flex:0 0 auto">Carregar</button>
+  </div>
+  <p class="note">Mostra o que já chegou ao servidor. Assinaturas que ainda estão no celular de algum apontador (sem sinal) entram quando ele sincronizar.</p>
+  <div id="feConteudo" hidden>
+    <div class="cards" id="cards"></div>
+    <h2 class="s">Gerar a medição</h2>
+    <p class="note">Cria uma cópia nova do modelo da obra na pasta do mês, marca 1 em cada refeição assinada e salva também em Excel. O modelo original não é alterado. O almoço do escritório (ALMOÇO - ESCR.) continua sendo lançado à mão na planilha gerada.</p>
+    <div class="row"><button class="btn" id="gerar">Gerar medição</button><button class="btn sec" id="gerarPdf">Gerar PDF das assinaturas</button></div>
+    <div id="resGerar"></div>
+    <h2 class="s">Empresas terceiras</h2>
+    <p class="note">Vale para todos os funcionários da empresa. Empresa nova entra como “A definir”.</p>
+    <div class="list" id="emps"></div>
+    <h2 class="s">Por conta da Compec, por dia</h2>
+    <div class="scroll"><table id="tabDia"></table></div>
+    <h2 class="s">Terceiros à descontar</h2>
+    <div class="scroll"><table id="tabTer"></table></div>
+    <h2 class="s">Sem assinatura</h2>
+    <div class="list" id="semAss"></div>
+    <h2 class="s">Corrigir lançamento</h2>
+    <p class="note">Busque o nome para mudar a obra de uma refeição lançada errada ou anular.</p>
+    <label>Buscar nome<input id="buscaC" placeholder="Digite parte do nome" autocomplete="off"></label>
+    <div class="list" id="listaC" style="margin-top:8px"></div>
+  </div>
+</section>
+</main>
+
+<div class="bar" id="bar" hidden>
+  <div class="n" id="contador"></div>
+  <button class="sync" id="sync" type="button"></button>
+</div>
+
+<dialog id="dSig"><form class="dlg" method="dialog">
+  <h2 id="sigNome"></h2>
+  <div class="meta" id="sigMeta"></div>
+  <div class="seg" id="sigCg"></div>
+  <div class="meta" id="sigCgNote"></div>
+  <canvas id="cv"></canvas>
+  <div class="row">
+    <button type="button" class="btn sec" id="limpar">Limpar</button>
+    <button type="button" class="btn sec" id="naoAss">Não pode assinar</button>
+    <button type="button" class="btn" id="okSig">Confirmar</button>
+  </div>
+  <div id="motivoBox" hidden class="row">
+    <label>Motivo<input id="motivo" placeholder="Ex.: mão machucada, recusou"></label>
+    <button type="button" class="btn" id="okNao" style="flex:0 0 auto">Registrar</button>
+  </div>
+  <button type="button" class="btn sec" id="fecharSig">Cancelar</button>
+</form></dialog>
+
+<dialog id="dTer"><form class="dlg" id="fTer">
+  <h2>Incluir terceiro ou visitante</h2>
+  <div class="seg" id="tipoT">
+    <button type="button" aria-pressed="true" data-t="T">Terceiro<small>empresa contratada</small></button>
+    <button type="button" aria-pressed="false" data-t="V">Visitante<small>por conta da obra</small></button>
+  </div>
+  <label>Nome completo<input id="tNome" required autocomplete="off"></label>
+  <label id="tEmpL">Empresa<input id="tEmp" list="empsL" autocomplete="off"></label>
+  <datalist id="empsL"></datalist>
+  <label>Função<input id="tFun" autocomplete="off"></label>
+  <label>Obra principal<select id="tObra"><option value="">Não sei</option><option value="256">CG 256</option><option value="257">CG 257</option></select></label>
+  <div class="row">
+    <button type="button" class="btn sec" id="fecharTer">Cancelar</button>
+    <button class="btn">Incluir</button>
+  </div>
+  <p class="note">Funciona sem sinal: a pessoa aparece na hora neste celular e para os outros apontadores depois que sincronizar.</p>
+</form></dialog>
+
+<script src="config.js"></script>
+<script>
+{
+/* ======== utilidades ======== */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const REF=[{k:'C',n:'Café',h:'06:45–07:00'},{k:'A',n:'Almoço',h:'12:00–13:00'},{k:'J',n:'Janta',h:'19:00'}];
+const PRECO={C:6.5,A:17,J:17};
+const SIT={D:'À descontar',C:'Por conta da Compec','?':'A definir'};
+const br=d=>d?d.split('-').reverse().join('/'):'';
+const iso=d=>new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);
+const hojeL=()=>iso(new Date());
+const addD=(s,n)=>{const d=new Date(s+'T12:00');d.setDate(d.getDate()+n);return iso(d)};
+const key=(d,r,pid)=>d+'|'+r+'|'+pid;
+const brl=v=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const LS={get(k,def){try{const v=localStorage.getItem('rc_'+k);return v?JSON.parse(v):def}catch(e){return def}},set(k,v){try{localStorage.setItem('rc_'+k,JSON.stringify(v));return true}catch(e){return false}}};
+const API=(window.RC_CONFIG||{}).api||'';
+
+/* ======== fila no aparelho (IndexedDB) ======== */
+const fila={db:null,
+  abrir(){return new Promise(ok=>{try{const r=indexedDB.open('rc',1);r.onupgradeneeded=()=>r.result.createObjectStore('fila',{keyPath:'uid'});r.onsuccess=()=>{this.db=r.result;ok()};r.onerror=()=>ok()}catch(e){ok()}})},
+  op(modo,fn){return new Promise((ok,er)=>{if(!this.db){const a=LS.get('fila',[]);const res=fn(null,a);LS.set('fila',a);return ok(res)}const tx=this.db.transaction('fila',modo);const st=tx.objectStore('fila');let res;const q=fn(st);if(q)q.onsuccess=()=>res=q.result;tx.oncomplete=()=>ok(res);tx.onerror=()=>er(tx.error)})},
+  add(it){return this.op('readwrite',(st,a)=>st?st.put(it):(a.push(it),null))},
+  todos(){return this.op('readonly',(st,a)=>st?st.getAll():a.slice())},
+  del(uid){return this.op('readwrite',(st,a)=>{if(st)return st.delete(uid);const i=a.findIndex(x=>x.uid===uid);if(i>=0)a.splice(i,1);return null})}
+};
+
+/* ======== estado ======== */
+let auth=LS.get('auth',null);
+let D=LS.get('dados',null);           // dados do servidor
+let LOC=LS.get('local',{});           // assinaturas feitas neste aparelho
+let EXTRA=LS.get('extra',[]);         // pessoas incluídas neste aparelho
+let pendentes=0,enviando=false,ultimaAtualizacao=LS.get('ts',0);
+const st={data:hojeL(),ref:'A',busca:'',eq:'*',pend:false,tipo:'T',aba:'ap'};
+
+async function api(req,tempo=25000){
+  if(!API)throw new Error('App sem endereço do servidor (config.js)');
+  const c=new AbortController();const t=setTimeout(()=>c.abort(),tempo);
+  try{const r=await fetch(API,{method:'POST',body:JSON.stringify(req),signal:c.signal,redirect:'follow'});const j=await r.json();if(j.auth===false){sairForcado();throw new Error('PIN não aceito. Entre de novo.')}if(!j.ok)throw new Error(j.erro||'Erro no servidor');return j}
+  finally{clearTimeout(t)}
+}
+
+/* ======== pessoas ======== */
+function pessoas(){
+  const m=new Map();
+  (D?.pessoas||[]).forEach(p=>m.set(p[0],{id:p[0],nome:p[1],emp:p[2],fun:p[3],t:p[4],eq:p[5],obra:p[6],desl:p[7]}));
+  EXTRA.forEach(p=>{if(!m.has(p.id))m.set(p.id,{id:p.id,nome:p.nome,emp:p.emp,fun:p.fun,t:p.t,eq:p.t==='V'?'VISITANTES':'TERCEIROS',obra:p.obra,desl:''})});
+  return [...m.values()].sort((a,b)=>a.nome.localeCompare(b.nome))}
+let P=pessoas();
+const ativoEm=(p,d)=>!p.desl||p.desl>d;
+let LM=new Map();const indexa=()=>{LM=new Map((D?.lanc||[]).map(x=>[x[0],x]))};indexa();
+const statusDe=(d,r,pid)=>{const k=key(d,r,pid);const l=LOC[k];if(l&&!l.dup)return {...l,local:true};const s=LM.get(k);return s?{obra:s[1],ap:s[2],ok:!!s[3],h:s[4]}:null};
+function sugestao(p,d){
+  for(let i=0;i<7;i++){const dd=addD(d,-i);for(const r of ['J','A','C']){if(i===0&&r===st.ref)continue;const s=statusDe(dd,r,p.id);if(s?.obra)return s.obra}}
+  return p.obra||(p.t==='T'?(D?.empresas?.[p.emp]?.[1]||''):'')}
+
+/* ======== telas ======== */
+function mostrar(v){['login','ap','pe','fe'].forEach(x=>$('#v-'+x).hidden=x!==v);['ap','pe','fe'].forEach(x=>$('#t-'+x).setAttribute('aria-selected',x===v));$('#bar').hidden=v!=='ap';st.aba=v;
+  if(v==='ap')renderAp();if(v==='pe')renderPe();if(v==='fe')prepFe()}
+
+function iniciar(){
+  $('#sair').hidden=!auth;$('#nav').hidden=!auth;
+  if(!API){$('#v-login').hidden=false;$('#lMsg').textContent='Este app ainda não foi ligado ao servidor. Avise o administrativo.';return}
+  if(!auth){mostrar('login');carregarApontadores();return}
+  $('#quem').textContent=(auth.ap==='ADMIN'?'Administrativo':'Apontador: '+auth.ap)+' · CG 256 e CG 257';
+  $('#t-pe').hidden=$('#t-fe').hidden=!auth.admin;
+  preencherFiltros();mostrar('ap');
+}
+
+async function carregarApontadores(){
+  const cache=LS.get('aps',[]);
+  const pinta=l=>{$('#lAp').innerHTML=l.map(a=>`<option>${esc(a)}</option>`).join('')+'<option value="ADMIN">Administrativo</option>'};
+  pinta(cache);
+  try{const j=await api({acao:'apontadores'});LS.set('aps',j.apontadores);pinta(j.apontadores)}catch(e){if(!cache.length)$('#lMsg').textContent='Sem internet. Entre num lugar com sinal para o primeiro acesso.'}
+}
+$('#fLogin').onsubmit=async e=>{e.preventDefault();const a={ap:$('#lAp').value,pin:$('#lPin').value.trim()};$('#lMsg').textContent='Conferindo…';
+  try{const j=await api({acao:'login',auth:a});auth={...a,admin:j.admin};LS.set('auth',auth);$('#lPin').value='';$('#lMsg').textContent='';await atualizar(true);iniciar()}
+  catch(err){$('#lMsg').textContent=err.message||'Não foi possível entrar'}};
+function sairForcado(){auth=null;LS.set('auth',null);iniciar()}
+$('#sair').onclick=async()=>{const n=(await fila.todos()).length;if(n&&!confirmar(`Ainda há ${n} registro(s) não enviado(s) neste celular. Se sair, eles continuam guardados e serão enviados quando alguém entrar de novo neste aparelho. Sair mesmo assim?`))return;auth=null;LS.set('auth',null);iniciar()};
+function confirmar(t){return window.confirm?window.confirm(t):true}
+
+function preencherFiltros(){
+  const eqs=[...new Set(P.map(p=>p.eq).filter(Boolean))].sort();
+  $('#fEqA').innerHTML='<option value="*">Todas</option>'+eqs.map(e=>`<option${e===st.eq?' selected':''}>${esc(e)}</option>`).join('');
+  $('#empsL').innerHTML=[...new Set(P.filter(p=>p.t==='T').map(p=>p.emp))].sort().map(x=>`<option value="${esc(x)}">`).join('');
+  $('#data').value=st.data;$('#data').max=hojeL();
+}
+const tag=p=>p.t==='T'?`<span class="tag">TERC.</span>`:p.t==='V'?`<span class="tag v">VISIT.</span>`:'';
+
+function renderAp(){
+  const d=st.data;
+  $('#ref').innerHTML=REF.map(r=>{const n=P.filter(p=>statusDe(d,r.k,p.id)?.ok).length;return `<button type="button" data-r="${r.k}" aria-pressed="${r.k===st.ref}">${r.n} · ${n}<small>${r.h}</small></button>`}).join('');
+  const q=st.busca.trim().toUpperCase();
+  const F=P.filter(p=>ativoEm(p,d)&&(!q||p.nome.toUpperCase().includes(q))&&(st.eq==='*'||p.eq===st.eq)&&(!st.pend||!statusDe(d,st.ref,p.id)));
+  $('#lista').innerHTML=!D?'<div class="empty">Baixando a lista de pessoas… Precisa de sinal na primeira vez.</div>':F.length?F.slice(0,300).map(p=>{const s=statusDe(d,st.ref,p.id);
+    const cgT=s?.obra?`<span class="cg">CG ${esc(s.obra)}</span>`:'';
+    const por=s&&s.ap!==auth.ap?`<small class="por">por ${esc(s.ap)}</small>`:'';
+    const nv=s?.local&&!s.sent?'<small class="por q">aguardando envio</small>':'';
+    const dir=s?.ok?`<div class="sig">${s.img?`<img alt="" src="${s.img}">`:'<b class="ok">✓</b>'}<span>${esc(s.h||'')} ${cgT}${por}${nv}</span></div>`:s?`<div class="nao">Sem assinatura${s.motivo?': '+esc(s.motivo):''}${por}${nv}</div>`:`<button class="btn" data-n="${esc(p.id)}">Assinar</button>`;
+    return `<div class="p"><div><b>${esc(p.nome)}${tag(p)}</b><span>${esc(p.fun||'—')} · ${esc(p.t==='T'?p.emp:p.eq||'')}</span></div>${dir}</div>`}).join(''):'<div class="empty">Ninguém encontrado. Confira o nome ou use “+ Terceiro / visitante”.</div>';
+  const r=REF.find(x=>x.k===st.ref);const n=P.filter(p=>statusDe(d,st.ref,p.id)?.ok).length;
+  $('#contador').innerHTML=`<b>${n}</b> assinaram o ${r.n.toLowerCase()} · ${br(d)}`;
+  pintaSync();
+}
+function pintaSync(){const on=navigator.onLine;
+  $('#sync').textContent=pendentes?`${pendentes} aguardando ${on?'envio…':'sinal'}`:(on?'Tudo enviado':'Sem sinal · tudo enviado');
+  $('#sync').className='sync'+(pendentes?' q':'');}
+
+/* ======== assinatura ======== */
+const cv=$('#cv'),cx=cv.getContext('2d');let drawing=false,tem=false,alvo=null,cgSel='',gps='';
+function prep(){const r=cv.getBoundingClientRect();cv.width=r.width*2;cv.height=r.height*2;cx.setTransform(2,0,0,2,0,0);cx.lineWidth=2.6;cx.lineCap='round';cx.lineJoin='round';cx.strokeStyle='#112';tem=false}
+const pt=e=>{const r=cv.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top]};
+cv.addEventListener('pointerdown',e=>{drawing=true;cv.setPointerCapture(e.pointerId);const[x,y]=pt(e);cx.beginPath();cx.moveTo(x,y)});
+cv.addEventListener('pointermove',e=>{if(!drawing)return;const[x,y]=pt(e);cx.lineTo(x,y);cx.stroke();tem=true});
+cv.addEventListener('pointerup',()=>drawing=false);cv.addEventListener('pointercancel',()=>drawing=false);
+const hora=()=>new Date().toTimeString().slice(0,5);
+function pintaCg(){$('#sigCg').innerHTML=['256','257'].map(c=>`<button type="button" data-c="${c}" aria-pressed="${c===cgSel}">Trabalhando no CG ${c}</button>`).join('');
+  $('#sigCgNote').textContent=cgSel?'Sugestão: última obra registrada para esta pessoa. Troque se hoje for outra.':'Escolha em qual obra a pessoa está trabalhando hoje.'}
+$('#sigCg').onclick=e=>{const b=e.target.closest('button[data-c]');if(b){cgSel=b.dataset.c;pintaCg()}};
+function abrir(id){alvo=P.find(p=>p.id===id);const r=REF.find(x=>x.k===st.ref);cgSel=sugestao(alvo,st.data);
+  $('#sigNome').textContent=alvo.nome;$('#sigMeta').textContent=`${r.n} · ${br(st.data)} · assine dentro do quadro`;$('#motivoBox').hidden=true;$('#motivo').value='';pintaCg();$('#dSig').showModal();prep();
+  gps='';try{navigator.geolocation?.getCurrentPosition(p=>gps=p.coords.latitude.toFixed(5)+','+p.coords.longitude.toFixed(5),()=>{},{timeout:8000,maximumAge:300000})}catch(e){}}
+function imagemPequena(){const o=document.createElement('canvas');o.width=300;o.height=110;const c=o.getContext('2d');c.fillStyle='#fff';c.fillRect(0,0,300,110);c.drawImage(cv,0,0,300,110);return o.toDataURL('image/png')}
+async function grava(ok,motivo){
+  if(!cgSel){$('#sigCgNote').innerHTML='<span class="q">Escolha a obra antes de confirmar.</span>';return}
+  const k=key(st.data,st.ref,alvo.id);
+  if(statusDe(st.data,st.ref,alvo.id)){$('#dSig').close();renderAp();return}
+  const img=ok?imagemPequena():'';
+  const it={uid:k+'|'+Date.now(),tipo:'assin',data:st.data,ref:st.ref,pid:alvo.id,nome:alvo.nome,emp:alvo.emp,t:alvo.t,obra:cgSel,img,motivo:motivo||'',hora:hora(),gps};
+  await fila.add(it);
+  LOC[k]={ok,obra:cgSel,h:it.hora,ap:auth.ap,img,motivo:motivo||'',sent:false,uid:it.uid,dt:st.data};
+  LS.set('local',LOC);$('#dSig').close();await contaFila();renderAp();sincronizar();
+}
+$('#okSig').onclick=()=>{if(!tem){$('#sigMeta').textContent='Falta a assinatura no quadro.';return}grava(true)};
+$('#limpar').onclick=()=>{cx.clearRect(0,0,cv.width,cv.height);tem=false};
+$('#naoAss').onclick=()=>{$('#motivoBox').hidden=false;$('#motivo').focus()};
+$('#okNao').onclick=()=>{const m=$('#motivo').value.trim();if(!m){$('#motivo').focus();return}grava(false,m)};
+$('#fecharSig').onclick=()=>$('#dSig').close();
+
+/* ======== terceiros e visitantes ======== */
+const pintaTipo=()=>{[...$('#tipoT').children].forEach(x=>x.setAttribute('aria-pressed',x.dataset.t===st.tipo));$('#tEmpL').hidden=st.tipo==='V'};
+$('#addT').onclick=()=>{$('#fTer').reset();st.tipo='T';pintaTipo();$('#dTer').showModal()};
+$('#fecharTer').onclick=()=>$('#dTer').close();
+$('#tipoT').onclick=e=>{const b=e.target.closest('button');if(b){st.tipo=b.dataset.t;pintaTipo()}};
+$('#tNome').oninput=()=>$('#tNome').setCustomValidity('');
+$('#fTer').onsubmit=async e=>{e.preventDefault();const nome=$('#tNome').value.trim().toUpperCase().replace(/\s+/g,' ');if(!nome)return;
+  if(P.some(p=>p.nome===nome&&ativoEm(p,st.data))){$('#tNome').setCustomValidity('Esse nome já está na lista');$('#tNome').reportValidity();return}
+  const emp=st.tipo==='V'?'VISITANTE':($('#tEmp').value.trim().toUpperCase()||'SEM EMPRESA');
+  const p={id:'P'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),nome,emp,fun:$('#tFun').value.trim().toUpperCase(),t:st.tipo,obra:$('#tObra').value};
+  EXTRA.push(p);LS.set('extra',EXTRA);
+  await fila.add({uid:'0pessoa|'+p.id,tipo:'pessoa',id:p.id,nome:p.nome,emp:p.emp,fun:p.fun,t:p.t,obra:p.obra});
+  P=pessoas();preencherFiltros();$('#dTer').close();st.busca=nome;$('#busca').value=nome;await contaFila();renderAp();sincronizar()};
+
+/* ======== sincronização ======== */
+async function contaFila(){pendentes=(await fila.todos()).length;pintaSync()}
+async function sincronizar(forcar){
+  if(enviando||!auth||!navigator.onLine)return;enviando=true;
+  try{
+    let itens=(await fila.todos()).sort((a,b)=>a.uid.localeCompare(b.uid));
+    const dups=[];
+    while(itens.length){
+      const lote=itens.splice(0,10);
+      const j=await api({acao:'enviar',auth,itens:lote},60000);
+      for(const r of j.res){
+        const it=lote.find(x=>x.uid===r.uid);if(!it)continue;
+        if(r.st==='ok'||r.st==='dup'){await fila.del(r.uid);if(it.tipo==='assin'){const k=key(it.data,it.ref,it.pid);if(LOC[k]){if(r.st==='dup'){LOC[k].dup=true;dups.push(`${it.nome} (${REF.find(x=>x.k===it.ref).n} ${br(it.data)}) já tinha sido assinado por ${r.ap}`)}else LOC[k].sent=true}}}
+      }
+      LS.set('local',LOC);
+    }
+    if(dups.length){$('#dupAviso').hidden=false;$('#dupAviso').innerHTML='<b>Não enviado por já existir:</b><br>'+dups.map(esc).join('<br>')+' <button class="btn ghost" id="okDup">Ok</button>';$('#okDup').onclick=()=>$('#dupAviso').hidden=true}
+    if(forcar||Date.now()-ultimaAtualizacao>5*60e3)await atualizar();
+  }catch(e){console.warn(e)}finally{enviando=false;await contaFila();if(st.aba==='ap')renderAp()}
+}
+async function atualizar(){
+  const j=await api({acao:'dados',auth},45000);
+  D={pessoas:j.pessoas,empresas:j.empresas,lanc:j.lanc,hoje:j.hoje};LS.set('dados',D);indexa();
+  ultimaAtualizacao=Date.now();LS.set('ts',ultimaAtualizacao);
+  const ids=new Set(D.pessoas.map(p=>p[0]));EXTRA=EXTRA.filter(p=>!ids.has(p.id));LS.set('extra',EXTRA);
+  const lim=addD(hojeL(),-7);Object.keys(LOC).forEach(k=>{if(LOC[k].dt<lim&&LOC[k].sent!==false)delete LOC[k]});LS.set('local',LOC);
+  P=pessoas();preencherFiltros();
+}
+$('#sync').onclick=()=>sincronizar(true);
+window.addEventListener('online',()=>{pintaSync();sincronizar()});window.addEventListener('offline',pintaSync);
+setInterval(()=>sincronizar(),30000);
+
+/* ======== pessoas (administrativo) ======== */
+function renderPe(){const q=$('#buscaP').value.trim().toUpperCase(),f=$('#fPes').value,h=hojeL();
+  const F=P.filter(p=>(!q||p.nome.toUpperCase().includes(q))&&(f==='D'?!ativoEm(p,h):ativoEm(p,h)&&(f==='A'||(f==='?'&&!p.obra)||(f===p.t))));
+  $('#listaP').innerHTML=F.length?F.slice(0,300).map(p=>{const at=ativoEm(p,h);
+    return `<div class="p"><div><b>${esc(p.nome)}${tag(p)}</b><span>${at?(p.obra?'Obra principal CG '+esc(p.obra):'<span class="q">Sem obra principal</span>'):'Desligado em '+br(p.desl)} · ${esc(p.t==='T'?p.emp:p.eq||'')}</span></div>
+    <div class="row" style="justify-content:end"><select data-ob="${esc(p.id)}" aria-label="Obra principal"><option value="">Obra —</option><option value="256"${p.obra==='256'?' selected':''}>CG 256</option><option value="257"${p.obra==='257'?' selected':''}>CG 257</option></select><button class="btn sec" data-x="${esc(p.id)}" data-at="${at?1:0}">${at?'Desligar':'Reativar'}</button></div></div>`}).join(''):'<div class="empty">Ninguém encontrado.</div>'}
+$('#buscaP').oninput=renderPe;$('#fPes').onchange=renderPe;
+$('#listaP').onchange=async e=>{const s=e.target.closest('select[data-ob]');if(!s)return;try{await api({acao:'pessoaAlt',auth,id:s.dataset.ob,obra:s.value});await atualizar();renderPe()}catch(err){alerta(err)}};
+$('#listaP').onclick=async e=>{const b=e.target.closest('button[data-x]');if(!b)return;b.disabled=true;try{await api({acao:'pessoaAlt',auth,id:b.dataset.x,desligar:b.dataset.at==='1',data:hojeL()});await atualizar();renderPe()}catch(err){alerta(err);b.disabled=false}};
+$('#sinc').onclick=async()=>{$('#sincMsg').textContent='Lendo as relações… pode levar 1 minuto.';try{const j=await api({acao:'sincronizar',auth},120000);$('#sincMsg').textContent=j.r;await atualizar();renderPe()}catch(err){$('#sincMsg').textContent=err.message}};
+function alerta(err){window.alert?.(err.message||String(err))}
+
+/* ======== fechamento (administrativo) ======== */
+let R=[];
+function prepFe(){if($('#quinz').options.length)return;const h=new Date();const qs=[];
+  for(let m=0;m<4;m++){const b=new Date(h.getFullYear(),h.getMonth()-m,1);const y=b.getFullYear(),mo=b.getMonth(),last=new Date(y,mo+1,0).getDate(),mm=String(mo+1).padStart(2,'0');qs.push([`${y}-${mm}-16`,`${y}-${mm}-${last}`],[`${y}-${mm}-01`,`${y}-${mm}-15`])}
+  $('#quinz').innerHTML=qs.map(([a,b])=>`<option value="${a}|${b}">${br(a).slice(0,5)} a ${br(b)}</option>`).join('');$('#quinz').selectedIndex=+hojeL().slice(8)>15?0:1}
+const periodo=()=>$('#quinz').value.split('|');
+$('#carregar').onclick=async()=>{const[ini,fim]=periodo();$('#carregar').disabled=true;$('#carregar').textContent='Carregando…';
+  try{const j=await api({acao:'resumo',auth,ini,fim},90000);R=j.linhas;await atualizar();$('#feConteudo').hidden=false;$('#resGerar').innerHTML='';renderFe()}catch(err){alerta(err)}finally{$('#carregar').disabled=false;$('#carregar').textContent='Carregar'}};
+['#fCg'].forEach(s=>$(s).onchange=()=>{if(!$('#feConteudo').hidden)renderFe()});
+$('#quinz').onchange=()=>{$('#feConteudo').hidden=true};
+const sitE=e=>D?.empresas?.[e]?.[0]||'?';
+function renderFe(){const[ini,fim]=periodo();const cg=$('#fCg').value;const dias=[];for(let d=ini;d<=fim;d=addD(d,1))dias.push(d);
+  // linha: [chave,data,ref,pid,nome,emp,t,obra,ok,motivo,hora,ap]
+  const L=R.filter(x=>x[7]===cg),ok=L.filter(x=>x[8]);
+  const te=ok.filter(x=>x[6]==='T'&&sitE(x[5])==='D'),tq=ok.filter(x=>x[6]==='T'&&sitE(x[5])==='?'),cp=ok.filter(x=>x[6]!=='T'||sitE(x[5])==='C');
+  const val=a=>a.reduce((s,x)=>s+PRECO[x[2]],0);
+  $('#cards').innerHTML=[['Refeições assinadas',ok.length],['Valor estimado',brl(val(ok))],['Terceiros à descontar',brl(val(te))],['Sem assinatura',L.length-ok.length]].concat(tq.length?[['Empresa a definir',tq.length+' refeições']]:[]).map(([a,b])=>`<div class="card"><span>${a}</span><b>${esc(b)}</b></div>`).join('');
+  const emps=Object.keys(D?.empresas||{}).sort((a,b)=>(sitE(a)==='?'?0:1)-(sitE(b)==='?'?0:1)||a.localeCompare(b));
+  $('#emps').innerHTML=emps.map(m=>{const e=D.empresas[m];return `<div class="p"><div><b>${esc(m)}</b><span>${P.filter(p=>p.emp===m&&p.t==='T').length} pessoa(s)${e[0]==='?'?' · <span class="q">definir</span>':''}</span></div><div class="row" style="justify-content:end"><select data-e="${esc(m)}" aria-label="Situação">${Object.entries(SIT).map(([k,v])=>`<option value="${k}"${e[0]===k?' selected':''}>${v}</option>`).join('')}</select><select data-oe="${esc(m)}" aria-label="Obra principal"><option value="">Obra —</option>${['256','257'].map(c=>`<option value="${c}"${e[1]===c?' selected':''}>CG ${c}</option>`).join('')}</select></div></div>`}).join('');
+  const hd=`<thead><tr><th>Refeição</th>${dias.map(d=>`<th>${d.slice(8)}</th>`).join('')}<th>Total</th><th>Valor</th></tr></thead>`;
+  const linha=(a,r)=>{const c=dias.map(d=>a.filter(x=>x[1]===d&&x[2]===r.k).length);const t=c.reduce((s,v)=>s+v,0);return `<tr><td>${r.n}</td>${c.map(v=>`<td>${v||''}</td>`).join('')}<td>${t}</td><td>${brl(t*PRECO[r.k])}</td></tr>`};
+  $('#tabDia').innerHTML=hd+'<tbody>'+REF.map(r=>linha(cp,r)).join('')+`<tr class="tot"><td>Total</td>${dias.map(d=>`<td>${cp.filter(x=>x[1]===d).length||''}</td>`).join('')}<td>${cp.length}</td><td>${brl(val(cp))}</td></tr></tbody>`;
+  const ed=[...new Set(te.map(x=>x[5]))].sort();
+  $('#tabTer').innerHTML=ed.length?`<thead><tr><th>Empresa</th>${REF.map(r=>`<th>${r.n}</th>`).join('')}<th>Valor</th></tr></thead><tbody>`+ed.map(m=>{const a=te.filter(x=>x[5]===m);return `<tr><td>${esc(m)}</td>${REF.map(r=>`<td>${a.filter(x=>x[2]===r.k).length}</td>`).join('')}<td>${brl(val(a))}</td></tr>`}).join('')+'</tbody>':'<tbody><tr><td class="empty">Nenhum terceiro à descontar nesta obra e quinzena.</td></tr></tbody>';
+  const na=L.filter(x=>!x[8]);
+  $('#semAss').innerHTML=na.length?na.map(x=>`<div class="p"><div><b>${esc(x[4])}</b><span>${br(x[1])} · ${REF.find(r=>r.k===x[2]).n} · apontador ${esc(x[11])}</span></div><div class="nao">${esc(x[9])}</div></div>`).join(''):'<div class="empty">Nenhuma refeição sem assinatura.</div>';
+  renderCorr()}
+function renderCorr(){const q=$('#buscaC').value.trim().toUpperCase();if(q.length<3){$('#listaC').innerHTML='<div class="empty">Digite pelo menos 3 letras.</div>';return}
+  const L=R.filter(x=>x[4].toUpperCase().includes(q)).sort((a,b)=>a[1].localeCompare(b[1]));
+  $('#listaC').innerHTML=L.length?L.slice(0,80).map(x=>`<div class="p"><div><b>${esc(x[4])}</b><span>${br(x[1])} · ${REF.find(r=>r.k===x[2]).n} · CG ${esc(x[7])} · ${x[8]?'assinado':'sem assinatura'} · ${esc(x[11])}</span></div><div class="row" style="justify-content:end"><button class="btn sec" data-mv="${esc(x[0])}" data-to="${x[7]==='256'?'257':'256'}">Mudar p/ CG ${x[7]==='256'?'257':'256'}</button><button class="btn sec" data-an="${esc(x[0])}">Anular</button></div></div>`).join(''):'<div class="empty">Nada nesta quinzena.</div>'}
+$('#buscaC').oninput=renderCorr;
+$('#listaC').onclick=async e=>{const m=e.target.closest('button[data-mv]'),a=e.target.closest('button[data-an]');if(!m&&!a)return;
+  if(a&&!confirmar('Anular esta refeição? Ela sai da medição.'))return;
+  try{await api({acao:'corrigir',auth,chave:(m||a).dataset[m?'mv':'an'],obra:m?m.dataset.to:'',anular:!!a});const x=R.find(r=>r[0]===(m||a).dataset[m?'mv':'an']);if(m)x[7]=m.dataset.to;else R.splice(R.indexOf(x),1);renderFe()}catch(err){alerta(err)}};
+$('#emps').onchange=async e=>{const s=e.target.closest('select[data-e]'),o=e.target.closest('select[data-oe]');
+  try{if(s)await api({acao:'empresa',auth,empresa:s.dataset.e,situacao:s.value});if(o)await api({acao:'empresa',auth,empresa:o.dataset.oe,obra:o.value});if(D.empresas[(s||o).dataset[s?'e':'oe']]){const k=(s||o).dataset[s?'e':'oe'];if(s)D.empresas[k][0]=s.value;else D.empresas[k][1]=o.value;LS.set('dados',D)}renderFe()}catch(err){alerta(err)}};
+$('#gerar').onclick=async()=>{const[ini,fim]=periodo();const cg=$('#fCg').value;const b=$('#gerar');b.disabled=true;b.textContent='Gerando… (até 2 min)';$('#resGerar').innerHTML='';
+  try{const j=await api({acao:'gerar',auth,cg,ini,fim},360000);
+    $('#resGerar').innerHTML=`<div class="aviso ok"><b>Medição gerada: ${esc(j.nome)}</b><br>${j.lancados} marcações lançadas.<br><a href="${esc(j.planilha)}" target="_blank" rel="noopener">Abrir a planilha</a> · <a href="${esc(j.xlsx)}" target="_blank" rel="noopener">Arquivo Excel</a> · <a href="${esc(j.pasta)}" target="_blank" rel="noopener">Pasta do mês</a>
+    ${j.novos.length?'<br><br><b>Incluídos em linhas novas:</b><br>'+j.novos.map(esc).join('<br>'):''}
+    ${j.naoLancados.length?'<br><br><b class="q">Não lançados (lançar à mão):</b><br>'+j.naoLancados.map(n=>esc(n.join(' · '))).join('<br>'):''}
+    ${j.avisos.length?'<br><br><b>Avisos:</b><br>'+j.avisos.map(esc).join('<br>'):''}<br><br>A aba “APP - CONFERÊNCIA” da planilha tem esse mesmo resumo.</div>`}
+  catch(err){$('#resGerar').innerHTML=`<div class="aviso erro">${esc(err.message)}</div>`}finally{b.disabled=false;b.textContent='Gerar medição'}};
+$('#gerarPdf').onclick=async()=>{const[ini,fim]=periodo();const cg=$('#fCg').value;const b=$('#gerarPdf');b.disabled=true;
+  try{let j;do{b.textContent='Gerando PDFs…';j=await api({acao:'pdf',auth,cg,ini,fim},360000)}while(j.pendentes>0);
+    $('#resGerar').innerHTML=`<div class="aviso ok"><b>PDFs das assinaturas prontos</b> (um por dia).<br><a href="${esc(j.pasta)}" target="_blank" rel="noopener">Abrir a pasta</a></div>`}
+  catch(err){$('#resGerar').innerHTML=`<div class="aviso erro">${esc(err.message)}</div>`}finally{b.disabled=false;b.textContent='Gerar PDF das assinaturas'}};
+
+/* ======== eventos gerais ======== */
+['ap','pe','fe'].forEach(x=>$('#t-'+x).onclick=()=>mostrar(x));
+$('#data').onchange=e=>{st.data=e.target.value||st.data;renderAp()};
+$('#busca').oninput=e=>{st.busca=e.target.value;renderAp()};
+$('#fEqA').onchange=e=>{st.eq=e.target.value;renderAp()};
+$('#pend').onchange=e=>{st.pend=e.target.checked;renderAp()};
+$('#ref').onclick=e=>{const b=e.target.closest('button');if(b){st.ref=b.dataset.r;renderAp()}};
+$('#lista').onclick=e=>{const b=e.target.closest('button[data-n]');if(b)abrir(b.dataset.n)};
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){st.data=st.data>hojeL()?hojeL():st.data;sincronizar()}});
+
+/* refeição sugerida pela hora do dia */
+(()=>{const h=new Date().getHours();st.ref=h<10?'C':h<16?'A':'J'})();
+
+/* instalar na tela inicial */
+const standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+if(!standalone){const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);$('#instalar').hidden=false;
+  $('#instalar').innerHTML=(ios?'<b>Instale o app:</b> toque em <b>Compartilhar</b> (quadrado com seta) e depois em <b>Adicionar à Tela de Início</b>. Assim ele abre sem sinal.':'<b>Instale o app:</b> no menu do Chrome (⋮), toque em <b>Adicionar à tela inicial</b> ou <b>Instalar app</b>. Assim ele abre sem sinal.')+' <button class="btn ghost" id="okInst">Ok</button>';
+  $('#okInst').onclick=()=>$('#instalar').hidden=true}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{})}
+try{navigator.storage?.persist?.()}catch(e){}
+
+(async()=>{await fila.abrir();await contaFila();iniciar();if(auth){if(!D)try{await atualizar()}catch(e){}renderAp();sincronizar()}})();
+}
+</script>
+</body>
+</html>
