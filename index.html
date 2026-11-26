@@ -94,6 +94,8 @@ button.sync{background:none;border:0;font:inherit;font-size:13px;font-weight:700
 button.sync.q{color:var(--warn)}
 .ok{color:var(--ok)}
 .sig b.ok{font-size:22px}
+button.desf{display:block;margin-top:4px;background:none;border:0;padding:6px 0;min-height:32px;font:inherit;font-size:12px;font-weight:700;color:var(--acc);text-decoration:underline;cursor:pointer}
+.nao button.desf{margin-left:auto}
 </style>
 
 </head>
@@ -175,6 +177,9 @@ button.sync.q{color:var(--warn)}
     <div class="scroll"><table id="tabDia"></table></div>
     <h2 class="s">Terceiros à descontar</h2>
     <div class="scroll"><table id="tabTer"></table></div>
+    <h2 class="s">Desfeitas e anuladas</h2>
+    <p class="note">Assinaturas que o apontador desfez ou que você anulou. Não entram na medição.</p>
+    <div class="list" id="anul"></div>
     <h2 class="s">Sem assinatura</h2>
     <div class="list" id="semAss"></div>
     <h2 class="s">Corrigir lançamento</h2>
@@ -206,6 +211,17 @@ button.sync.q{color:var(--warn)}
     <button type="button" class="btn" id="okNao" style="flex:0 0 auto">Registrar</button>
   </div>
   <button type="button" class="btn sec" id="fecharSig">Cancelar</button>
+</form></dialog>
+
+<dialog id="dDesf"><form class="dlg" id="fDesf">
+  <h2 id="desfNome"></h2>
+  <div class="meta" id="desfMeta"></div>
+  <label>Motivo<input id="desfMotivo" required placeholder="Ex.: funcionário errado, obra errada" autocomplete="off"></label>
+  <div class="row">
+    <button type="button" class="btn sec" id="fecharDesf">Cancelar</button>
+    <button class="btn">Desfazer assinatura</button>
+  </div>
+  <p class="note">A assinatura sai da medição. O registro fica guardado como anulado, com seu nome e o motivo.</p>
 </form></dialog>
 
 <dialog id="dTer"><form class="dlg" id="fTer">
@@ -256,6 +272,7 @@ const fila={db:null,
 /* ======== estado ======== */
 let auth=LS.get('auth',null);
 let D=LS.get('dados',null);           // dados do servidor
+let DESF=LS.get('desf',{});          // assinaturas desfeitas aguardando confirmação do servidor
 let LOC=LS.get('local',{});           // assinaturas feitas neste aparelho
 let EXTRA=LS.get('extra',[]);         // pessoas incluídas neste aparelho
 let pendentes=0,enviando=false,ultimaAtualizacao=LS.get('ts',0);
@@ -285,7 +302,7 @@ function pessoas(){
 let P=pessoas();
 const ativoEm=(p,d)=>!p.desl||p.desl>d;
 let LM=new Map();const indexa=()=>{LM=new Map((D?.lanc||[]).map(x=>[x[0],x]))};indexa();
-const statusDe=(d,r,pid)=>{const k=key(d,r,pid);const l=LOC[k];if(l&&!l.dup)return {...l,local:true};const s=LM.get(k);return s?{obra:s[1],ap:s[2],ok:!!s[3],h:s[4]}:null};
+const statusDe=(d,r,pid)=>{const k=key(d,r,pid);const l=LOC[k];if(DESF[k]&&!(l&&!l.dup&&l.t0>DESF[k]))return null;if(l&&!l.dup)return {...l,local:true};const s=LM.get(k);return s?{obra:s[1],ap:s[2],ok:!!s[3],h:s[4]}:null};
 function sugestao(p,d){
   for(let i=0;i<7;i++){const dd=addD(d,-i);for(const r of ['J','A','C']){if(i===0&&r===st.ref)continue;const s=statusDe(dd,r,p.id);if(s?.obra)return s.obra}}
   return p.obra||(p.t==='T'?(D?.empresas?.[p.emp]?.[1]||''):'')}
@@ -333,7 +350,9 @@ function renderAp(){
     const cgT=s?.obra?`<span class="cg">CG ${esc(s.obra)}</span>`:'';
     const por=s&&s.ap!==auth.ap?`<small class="por">por ${esc(s.ap)}</small>`:'';
     const nv=(s?.local&&!s.sent?'<small class="por q">aguardando envio</small>':'')+(s?.quando&&depois(d,s.quando)?`<small class="por q">colhida depois: ${esc(depois(d,s.quando))}</small>`:'');
-    const dir=s?.ok?`<div class="sig">${s.img?`<img alt="" src="${s.img}">`:'<b class="ok">✓</b>'}<span>${esc(s.h||'')} ${cgT}${por}${nv}</span></div>`:s?`<div class="nao">Sem assinatura${s.motivo?': '+esc(s.motivo):''}${por}${nv}</div>`:`<button class="btn" data-n="${esc(p.id)}">Assinar</button>`;
+    const podeDesf=(D?.versao||0)>=2&&s&&(s.ap===auth.ap||auth.admin)&&(d===hojeL()||String(s.quando||'').slice(0,10)===hojeL());
+    const desf=podeDesf?`<button class="desf" data-u="${esc(p.id)}" type="button">Desfazer</button>`:'';
+    const dir=s?.ok?`<div class="sig">${s.img?`<img alt="" src="${s.img}">`:'<b class="ok">✓</b>'}<span>${esc(s.h||'')} ${cgT}${por}${nv}${desf}</span></div>`:s?`<div class="nao">Sem assinatura${s.motivo?': '+esc(s.motivo):''}${por}${nv}${desf}</div>`:`<button class="btn" data-n="${esc(p.id)}">Assinar</button>`;
     return `<div class="p"><div><b>${esc(p.nome)}${tag(p)}</b><span>${esc(p.fun||'—')} · ${esc(p.t==='T'?p.emp:p.eq||'')}</span></div>${dir}</div>`}).join(''):'<div class="empty">Ninguém encontrado. Confira o nome ou use “+ Terceiro / visitante”.</div>';
   const r=REF.find(x=>x.k===st.ref);const n=P.filter(p=>statusDe(d,st.ref,p.id)?.ok).length;
   $('#contador').innerHTML=`<b>${n}</b> assinaram o ${r.n.toLowerCase()} · ${br(d)}`+(d<hojeL()?' <span class="q">· dia anterior: fica marcado como colhida depois</span>':'');
@@ -364,10 +383,11 @@ async function grava(ok,motivo){
   if(!cgSel){$('#sigCgNote').innerHTML='<span class="q">Escolha a obra antes de confirmar.</span>';return}
   const k=key(st.data,st.ref,alvo.id);
   if(statusDe(st.data,st.ref,alvo.id)){$('#dSig').close();renderAp();return}
+  const t0=Date.now();
   const img=ok?imagemPequena():'';
-  const it={uid:k+'|'+Date.now(),tipo:'assin',data:st.data,ref:st.ref,pid:alvo.id,nome:alvo.nome,emp:alvo.emp,t:alvo.t,obra:cgSel,img,motivo:motivo||'',hora:hora(),gps,quando:agoraIso()};
+  const it={uid:k+'|'+t0,tipo:'assin',data:st.data,ref:st.ref,pid:alvo.id,nome:alvo.nome,emp:alvo.emp,t:alvo.t,obra:cgSel,img,motivo:motivo||'',hora:hora(),gps,quando:agoraIso()};
   await fila.add(it);
-  LOC[k]={ok,obra:cgSel,h:it.hora,ap:auth.ap,img,motivo:motivo||'',sent:false,uid:it.uid,dt:st.data,quando:it.quando};
+  LOC[k]={ok,obra:cgSel,h:it.hora,ap:auth.ap,img,motivo:motivo||'',sent:false,uid:it.uid,dt:st.data,quando:it.quando,t0};
   LS.set('local',LOC);$('#dSig').close();await contaFila();renderAp();sincronizar();
 }
 $('#okSig').onclick=()=>{if(!tem){$('#sigMeta').textContent='Falta a assinatura no quadro.';return}grava(true)};
@@ -396,24 +416,27 @@ async function sincronizar(forcar){
   if(enviando||!auth||!navigator.onLine)return;enviando=true;
   try{
     let itens=(await fila.todos()).sort((a,b)=>a.uid.localeCompare(b.uid));
-    const dups=[];
+    const dups=[],negados=[];
     while(itens.length){
       const lote=itens.splice(0,10);
       const j=await api({acao:'enviar',auth,itens:lote},60000);
       for(const r of j.res){
         const it=lote.find(x=>x.uid===r.uid);if(!it)continue;
+        if(it.tipo==='desfazer'){if(!r.desf)continue;await fila.del(r.uid);const k=key(it.data,it.ref,it.pid);if(r.st==='negado'){delete DESF[k];negados.push(`${it.nome} (${REF.find(x=>x.k===it.ref).n} ${br(it.data)}): ${r.erro}`)}else forcar=true;LS.set('desf',DESF);continue}
         if(r.st==='ok'||r.st==='dup'){await fila.del(r.uid);if(it.tipo==='assin'){const k=key(it.data,it.ref,it.pid);if(LOC[k]){if(r.st==='dup'){LOC[k].dup=true;dups.push(`${it.nome} (${REF.find(x=>x.k===it.ref).n} ${br(it.data)}) já tinha sido assinado por ${r.ap}`)}else LOC[k].sent=true}}}
       }
       LS.set('local',LOC);
     }
-    if(dups.length){$('#dupAviso').hidden=false;$('#dupAviso').innerHTML='<b>Não enviado por já existir:</b><br>'+dups.map(esc).join('<br>')+' <button class="btn ghost" id="okDup">Ok</button>';$('#okDup').onclick=()=>$('#dupAviso').hidden=true}
+    if(dups.length||negados.length){$('#dupAviso').hidden=false;$('#dupAviso').innerHTML=(dups.length?'<b>Não enviado por já existir:</b><br>'+dups.map(esc).join('<br>')+'<br>':'')+(negados.length?'<b>Não foi possível desfazer:</b><br>'+negados.map(esc).join('<br>')+'<br>':'')+' <button class="btn ghost" id="okDup">Ok</button>';$('#okDup').onclick=()=>$('#dupAviso').hidden=true}
     if(forcar||Date.now()-ultimaAtualizacao>5*60e3)await atualizar();
   }catch(e){console.warn(e)}finally{enviando=false;await contaFila();if(st.aba==='ap')renderAp()}
 }
 async function atualizar(){
   const j=await api({acao:'dados',auth},45000);
-  D={pessoas:j.pessoas,empresas:j.empresas,lanc:j.lanc,hoje:j.hoje};LS.set('dados',D);indexa();
+  D={versao:j.versao||1,pessoas:j.pessoas,empresas:j.empresas,lanc:j.lanc,hoje:j.hoje};LS.set('dados',D);indexa();
   ultimaAtualizacao=Date.now();LS.set('ts',ultimaAtualizacao);
+  const pend=new Set((await fila.todos()).filter(x=>x.tipo==='desfazer').map(x=>key(x.data,x.ref,x.pid)));
+  Object.keys(DESF).forEach(k=>{if(!pend.has(k)&&!LM.has(k))delete DESF[k]});LS.set('desf',DESF);
   const ids=new Set(D.pessoas.map(p=>p[0]));EXTRA=EXTRA.filter(p=>!ids.has(p.id));LS.set('extra',EXTRA);
   const lim=addD(hojeL(),-7);Object.keys(LOC).forEach(k=>{if(LOC[k].dt<lim&&LOC[k].sent!==false)delete LOC[k]});LS.set('local',LOC);
   P=pessoas();preencherFiltros();
@@ -435,13 +458,13 @@ $('#sinc').onclick=async()=>{$('#sincMsg').textContent='Lendo as relações… p
 function alerta(err){window.alert?.(err.message||String(err))}
 
 /* ======== fechamento (administrativo) ======== */
-let R=[];
+let R=[],AN=[];
 function prepFe(){if($('#quinz').options.length)return;const h=new Date();const qs=[];
   for(let m=0;m<4;m++){const b=new Date(h.getFullYear(),h.getMonth()-m,1);const y=b.getFullYear(),mo=b.getMonth(),last=new Date(y,mo+1,0).getDate(),mm=String(mo+1).padStart(2,'0');qs.push([`${y}-${mm}-16`,`${y}-${mm}-${last}`],[`${y}-${mm}-01`,`${y}-${mm}-15`])}
   $('#quinz').innerHTML=qs.map(([a,b])=>`<option value="${a}|${b}">${br(a).slice(0,5)} a ${br(b)}</option>`).join('');$('#quinz').selectedIndex=+hojeL().slice(8)>15?0:1}
 const periodo=()=>$('#quinz').value.split('|');
 $('#carregar').onclick=async()=>{const[ini,fim]=periodo();$('#carregar').disabled=true;$('#carregar').textContent='Carregando…';
-  try{const j=await api({acao:'resumo',auth,ini,fim},90000);R=j.linhas;await atualizar();$('#feConteudo').hidden=false;$('#resGerar').innerHTML='';renderFe()}catch(err){alerta(err)}finally{$('#carregar').disabled=false;$('#carregar').textContent='Carregar'}};
+  try{const j=await api({acao:'resumo',auth,ini,fim},90000);R=j.linhas;AN=j.anulados||[];await atualizar();$('#feConteudo').hidden=false;$('#resGerar').innerHTML='';renderFe()}catch(err){alerta(err)}finally{$('#carregar').disabled=false;$('#carregar').textContent='Carregar'}};
 ['#fCg'].forEach(s=>$(s).onchange=()=>{if(!$('#feConteudo').hidden)renderFe()});
 $('#quinz').onchange=()=>{$('#feConteudo').hidden=true};
 const sitE=e=>D?.empresas?.[e]?.[0]||'?';
@@ -460,6 +483,8 @@ function renderFe(){const[ini,fim]=periodo();const cg=$('#fCg').value;const dias
   const ed=[...new Set(te.map(x=>x[5]))].sort();
   $('#tabTer').innerHTML=ed.length?`<thead><tr><th>Empresa</th>${REF.map(r=>`<th>${r.n}</th>`).join('')}<th>Valor</th></tr></thead><tbody>`+ed.map(m=>{const a=te.filter(x=>x[5]===m);return `<tr><td>${esc(m)}</td>${REF.map(r=>`<td>${a.filter(x=>x[2]===r.k).length}</td>`).join('')}<td>${brl(val(a))}</td></tr>`}).join('')+'</tbody>':'<tbody><tr><td class="empty">Nenhum terceiro à descontar nesta obra e quinzena.</td></tr></tbody>';
   const na=L.filter(x=>!x[8]);
+  const an=AN.filter(x=>x[3]===cg);
+  $('#anul').innerHTML=an.length?an.map(x=>`<div class="p"><div><b>${esc(x[2])}</b><span>${br(x[0])} · ${REF.find(r=>r.k===x[1]).n} · colhida por ${esc(x[4])}</span></div><div class="nao">${esc(x[5]||'Anulada')}</div></div>`).join(''):'<div class="empty">Nenhuma nesta obra e quinzena.</div>';
   $('#semAss').innerHTML=na.length?na.map(x=>`<div class="p"><div><b>${esc(x[4])}</b><span>${br(x[1])} · ${REF.find(r=>r.k===x[2]).n} · apontador ${esc(x[11])}</span></div><div class="nao">${esc(x[9])}</div></div>`).join(''):'<div class="empty">Nenhuma refeição sem assinatura.</div>';
   renderCorr()}
 function renderCorr(){const q=$('#buscaC').value.trim().toUpperCase();if(q.length<3){$('#listaC').innerHTML='<div class="empty">Digite pelo menos 3 letras.</div>';return}
@@ -490,7 +515,15 @@ $('#busca').oninput=e=>{st.busca=e.target.value;renderAp()};
 $('#fEqA').onchange=e=>{st.eq=e.target.value;renderAp()};
 $('#pend').onchange=e=>{st.pend=e.target.checked;renderAp()};
 $('#ref').onclick=e=>{const b=e.target.closest('button');if(b){st.ref=b.dataset.r;renderAp()}};
-$('#lista').onclick=e=>{const b=e.target.closest('button[data-n]');if(b)abrir(b.dataset.n)};
+$('#lista').onclick=e=>{const u=e.target.closest('button[data-u]');if(u){abrirDesf(u.dataset.u);return}const b=e.target.closest('button[data-n]');if(b)abrir(b.dataset.n)};
+let desfP=null;
+function abrirDesf(id){desfP=P.find(p=>p.id===id);$('#desfNome').textContent='Desfazer: '+desfP.nome;$('#desfMeta').textContent=REF.find(x=>x.k===st.ref).n+' · '+br(st.data);$('#fDesf').reset();$('#dDesf').showModal()}
+$('#fecharDesf').onclick=()=>$('#dDesf').close();
+$('#fDesf').onsubmit=async e=>{e.preventDefault();const motivo=$('#desfMotivo').value.trim();if(!motivo)return;
+  const k=key(st.data,st.ref,desfP.id);const l=LOC[k];
+  if(l&&!l.sent&&!l.dup&&l.uid){await fila.del(l.uid);delete LOC[k];LS.set('local',LOC)}
+  else{await fila.add({uid:k+'|'+Date.now()+'|desfazer',tipo:'desfazer',data:st.data,ref:st.ref,pid:desfP.id,nome:desfP.nome,motivo,quando:agoraIso()});DESF[k]=Date.now();LS.set('desf',DESF);if(l){delete LOC[k];LS.set('local',LOC)}}
+  $('#dDesf').close();await contaFila();renderAp();sincronizar()};
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){st.data=st.data>hojeL()?hojeL():st.data;sincronizar()}});
 
 /* refeição sugerida pela hora do dia */

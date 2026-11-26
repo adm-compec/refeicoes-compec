@@ -1,5 +1,5 @@
 // Guarda as telas do app no celular para abrir sem sinal.
-const VERSAO = 'rc-v4';
+const VERSAO = 'rc-v5';
 const ARQUIVOS = ['./', './index.html', './config.js', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSAO).then(c => c.addAll(ARQUIVOS)).then(() => self.skipWaiting()));
